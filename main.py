@@ -5,6 +5,21 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import xlsxwriter
 
+class channel:
+    name = ""
+    followers = ""
+    mentions = ""
+    def __init__(self,name, fol, ment):
+        self.name = name
+        self.followers = fol
+        self.mentions = ment
+
+    def __hash__(self):
+        return hash((self.name, self.mentions, self.followers))
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)): return NotImplemented
+        return self.name == other.name and self.followers == other.followers and self.mentions == other.mentions
 def parse():
     URL = "https://tgstat.ru/quotes/@MID_Russia/channels"
     chrome_options = Options()
@@ -18,14 +33,15 @@ def parse():
     while True:
         try:
             button.click()
-            time.sleep(0.1)
         except:
             break
     page_content = driver.page_source
+    time.sleep(100)
     with open("page.html", 'w', encoding='utf-8') as file:
         file.write(page_content)
 
 def write_to_excel():
+    s = set()
     workbook = xlsxwriter.Workbook('tg_channels.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write(0, 0, "Название")
@@ -43,9 +59,13 @@ def write_to_excel():
         b = media_div.find("b")
         mentions_table = table.find("div", class_="col col-5 align-items-center text-right")
         mention_a = mentions_table.find("a")
-        worksheet.write(row, 0, a.text)
-        worksheet.write(row, 1, b.text)
-        worksheet.write(row, 2, mention_a.text)
+
+        ch = channel(a.text, b.text, mention_a.text)
+        s.add(ch)
+    for ch in s:
+        worksheet.write(row, 0, ch.name)
+        worksheet.write(row, 1, ch.followers)
+        worksheet.write(row, 2, ch.mentions)
         row += 1
     workbook.close()
 if __name__ == '__main__':
